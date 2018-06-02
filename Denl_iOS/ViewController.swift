@@ -10,9 +10,6 @@ import UIKit
 import WebKit
 
 class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandler {
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        
-    }
     
 
     var webView: WKWebView!
@@ -30,11 +27,19 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
 //
 //        self.view = self.webView!
         
+        let contentController = WKUserContentController()
         let webConfiguration = WKWebViewConfiguration()
+        
+//        let userScript = WKUserScript(source: "redHeader()", injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+//        contentController.addUserScript(userScript)
+        
+        contentController.add(self, name: "changeStatusBarBGColor")
+        webConfiguration.userContentController = contentController
         
         webView = WKWebView(frame:.zero , configuration: webConfiguration)
         webView.uiDelegate = self
         webView.navigationDelegate = self
+        webView.allowsBackForwardNavigationGestures = true
         
         webView.addObserver(self, forKeyPath: "URL", options: .new, context: nil)
         webView.addObserver(self, forKeyPath: "estimatedProgress", options: .new, context: nil)
@@ -75,8 +80,8 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
             if (self.webView.estimatedProgress == 1) {
                 let path = webView.url?.lastPathComponent
                 if(path=="/"){
-                    UIApplication.shared.statusBarView?.backgroundColor = .white
-                    UIApplication.shared.statusBarStyle = .default
+                    UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 255.0/255.0, green: 175.0/255.0, blue: 28.0/255.0, alpha: 1)
+                    UIApplication.shared.statusBarStyle = .lightContent
                 }else{
                     UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 216.0/255.0, green: 67.0/255.0, blue: 21.0/255.0, alpha: 1)
                     UIApplication.shared.statusBarStyle = .lightContent
@@ -94,7 +99,7 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
 //        UIApplication.shared.statusBarStyle = .lightContent
     
         // Do any additional setup after loading the view, typically from a nib.
-        let myBlog = "http://beta.denl.xyz"
+        let myBlog = "https://beta.denl.xyz"
         let url = URL(string: myBlog)
         let request = URLRequest(url: url!)
         webView.load(request)
@@ -105,6 +110,15 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
         // Dispose of any resources that can be recreated.
     }
     
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if let url = navigationAction.request.url, url.scheme != "http" && url.scheme != "https" {
+//            UIApplication.shared.openURL(url)
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            decisionHandler(.cancel)
+        } else {
+            decisionHandler(.allow)
+        }
+    }
     
     @available(iOS 8.0, *)
     public func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Swift.Void){
@@ -128,9 +142,9 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
     
     @available(iOS 8.0, *)
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!){
-        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .whiteLarge)
+        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .white)
         activityIndicator.frame = CGRect(x: view.frame.midX-50, y: view.frame.midY-50, width: 100, height: 100)
-        activityIndicator.color = UIColor.red
+        activityIndicator.color = UIColor.init(red: 216.0/255.0, green: 67.0/255.0, blue: 21.0/255.0, alpha: 1)// UIColor.red
         activityIndicator.hidesWhenStopped = true
         activityIndicator.startAnimating()
         self.view.addSubview(activityIndicator)
@@ -142,6 +156,23 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
         //activityIndicator.stopAnimating()
         self.activityIndicator.removeFromSuperview()
     }
+    
+    // JS -> Native CALL
+    @available (iOS 8.0, *)
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if(message.name == "changeStatusBarBGColor") {
+            let color :String = message.body as! String
+            if(color == "white"){
+                UIApplication.shared.statusBarView?.backgroundColor = .white
+                UIApplication.shared.statusBarStyle = .default
+            }else if(color == "orange"){
+                UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 255.0/255.0, green: 175.0/255.0, blue: 28.0/255.0, alpha: 1)
+                UIApplication.shared.statusBarStyle = .lightContent
+            }
+//            print("YOURMETHOD 호출 \(message.body)")
+        }
+    }
+    
 
 
 }
