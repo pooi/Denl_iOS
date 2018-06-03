@@ -15,6 +15,13 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
     var webView: WKWebView!
     var activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView()
     
+    
+    let denlBetaService : String = "DenlBetaService"
+    let accountID : String = "ID"
+    let accountPW : String = "PW"
+    var attemptLogin = false
+    
+    
     override func loadView() {
         super.loadView()
         
@@ -33,7 +40,10 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
 //        let userScript = WKUserScript(source: "redHeader()", injectionTime: .atDocumentEnd, forMainFrameOnly: true)
 //        contentController.addUserScript(userScript)
         
+        contentController.add(self, name: "checkWebkit")
         contentController.add(self, name: "changeStatusBarBGColor")
+        contentController.add(self, name: "savePassword")
+        contentController.add(self, name: "logout")
         webConfiguration.userContentController = contentController
         
         webView = WKWebView(frame:.zero , configuration: webConfiguration)
@@ -78,6 +88,34 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
         if keyPath == #keyPath(WKWebView.estimatedProgress) {
             // When page load finishes. Should work on each page reload.
             if (self.webView.estimatedProgress == 1) {
+                activityIndicator.stopAnimating()
+                
+//                if let str = KeychainService.loadPassword(service: denlBetaService, account: "b") {
+//                    let fun = "loginSejoingWithWebkit('\(str)')"
+//                    print(fun)
+//                    self.webView.evaluateJavaScript(fun, completionHandler: {
+//                        (any, err) -> Void in
+//                        print(err ?? "no error")
+//                    })
+//                }
+                if(!attemptLogin){
+                    
+                    let id = KeychainService.loadPassword(service: denlBetaService, account: accountID)
+                    let pw = KeychainService.loadPassword(service: denlBetaService, account: accountPW)
+                    if((id != nil) && (pw != nil)){
+//                        let idStr = id as! String
+//                        let pwStr = pw as! String
+                        let fun = "loginSejoingWithWebkit('\(id!)', '\(pw!)')"
+                        self.webView.evaluateJavaScript(fun, completionHandler: {
+                            (any, err) -> Void in
+                            print(err ?? "no error")
+                            self.attemptLogin = true
+                        })
+                    }else{
+                        print("Password does not exist")
+                    }
+                }
+                
                 let path = webView.url?.lastPathComponent
                 if(path=="/"){
                     UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 255.0/255.0, green: 175.0/255.0, blue: 28.0/255.0, alpha: 1)
@@ -168,8 +206,20 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
             }else if(color == "orange"){
                 UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 255.0/255.0, green: 175.0/255.0, blue: 28.0/255.0, alpha: 1)
                 UIApplication.shared.statusBarStyle = .lightContent
+            }else if(color == "deep-orange"){
+                UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 216.0/255.0, green: 67.0/255.0, blue: 21.0/255.0, alpha: 1)
+                UIApplication.shared.statusBarStyle = .lightContent
             }
 //            print("YOURMETHOD 호출 \(message.body)")
+        }else if(message.name == "savePassword"){
+            let values:[String:String] = message.body as! Dictionary
+            let id = values["id"]! // as! String
+            let pw = values["password"]! // as! String
+            KeychainService.savePassword(service: denlBetaService, account: accountID, data: id)
+            KeychainService.savePassword(service: denlBetaService, account: accountPW, data: pw)
+        }else if(message.name == "logout"){
+            KeychainService.removePassword(service: denlBetaService, account: accountID)
+            KeychainService.removePassword(service: denlBetaService, account: accountPW)
         }
     }
     
