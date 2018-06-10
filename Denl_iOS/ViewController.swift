@@ -14,6 +14,7 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
 
     var webView: WKWebView!
     var activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView()
+    let refreshControl: UIRefreshControl = UIRefreshControl()
     
     
     let denlBetaService : String = "DenlBetaService"
@@ -89,6 +90,7 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
             // When page load finishes. Should work on each page reload.
             if (self.webView.estimatedProgress == 1) {
                 activityIndicator.stopAnimating()
+                refreshControl.endRefreshing()
                 
 //                if let str = KeychainService.loadPassword(service: denlBetaService, account: "b") {
 //                    let fun = "loginSejoingWithWebkit('\(str)')"
@@ -135,12 +137,31 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, WKSc
         
 //        UIApplication.shared.statusBarView?.backgroundColor = UIColor.init(red: 216.0/255.0, green: 67.0/255.0, blue: 21.0/255.0, alpha: 1)
 //        UIApplication.shared.statusBarStyle = .lightContent
+        
+        // Text (Pull to refresh) with format (Textcolor Black) for RefreshControl
+//        refreshControl.attributedTitle = NSAttributedString(string: "Pull to refresh", attributes: [
+//            NSForegroundColorAttributeName: UIColor.blackColor()
+//            ])
+        
+        // #selector(refresh) = "refresh" function called
+        refreshControl.addTarget(self, action: #selector(refresh), for: UIControlEvents.valueChanged)
+        
+        // TintColor - Color of Activity Indicator
+        refreshControl.tintColor = UIColor.white
+        
+        // Add RefreshControl to WebView
+        webView.scrollView.addSubview(refreshControl)
     
         // Do any additional setup after loading the view, typically from a nib.
-        let myBlog = "https://beta.denl.xyz"
+        let myBlog = "https://denl.xyz"
         let url = URL(string: myBlog)
         let request = URLRequest(url: url!)
         webView.load(request)
+    }
+    
+    // Refresh the WebView
+    @objc func refresh(sender:AnyObject) {
+        webView.reload()
     }
 
     override func didReceiveMemoryWarning() {
